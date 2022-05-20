@@ -9,6 +9,7 @@ public class SoftMesh {
 	//Number of (theoretical) milliseconds between each call of moveVertices
 	int subTick;
 	final static double dampingFactor = 0.9;
+	final static double collisionDampingFactor = 0.7;
 	
 	public SoftMesh(int subTick) {
 		this.subTick = subTick;
@@ -29,12 +30,12 @@ public class SoftMesh {
 		edges.add(new Edge(0, 4, 50, 10));
 		edges.add(new Edge(1, 2, 50, 10));
 		*/
-		edges.add(new Edge(0, 1, 100, 5));
-		edges.add(new Edge(1, 2, 100, 5));
-		edges.add(new Edge(2, 3, 100, 5));
-		edges.add(new Edge(3, 0, 100, 5));
-		edges.add(new Edge(0, 2, 100 * Math.sqrt(2), 15));
-		edges.add(new Edge(1, 3, 100 * Math.sqrt(2), 15));
+		edges.add(new Edge(0, 1, 100, 10));
+		edges.add(new Edge(1, 2, 100, 10));
+		edges.add(new Edge(2, 3, 100, 10));
+		edges.add(new Edge(3, 0, 100, 10));
+		edges.add(new Edge(0, 2, 100 * Math.sqrt(2), 5));
+		edges.add(new Edge(1, 3, 100 * Math.sqrt(2), 5));
 		//edges.add(new Edge(2, 0, (int) (100 * Math.sqrt(2)), 5));
 		//edges.add(new Edge(3, 1, (int) (100 * Math.sqrt(2)), 5));
 		
@@ -107,7 +108,7 @@ public class SoftMesh {
 		//Distance from intersecting vertices to the corresponding edge
 		Double[] distances = new Double[4];
 		int minDistanceIndex;
-		Double[] intersection;
+		Double[] intersection = null;
 		boolean intersecting = false;
 		boolean intersected = false;
 		//The edge and vertex whose velocity will be affected by the collision. v1 and v2 will be set to the cEdge vertices
@@ -155,8 +156,30 @@ public class SoftMesh {
 		
 		//Causing "bounce"
 		double angle;
-		double parallelVelocity;
-		Double[] parallelVector = new Double[2];
+		
+		//The x and y components (as ratios of edge length) of the edge perpendicular (rotated 90 degrees counterclockwise) to the colliding edge
+		Double[] perpRatio = new Double[2];
+		
+		double cEdgeMass;
+		//Distance from collision point on edge to v1 (first vertex on edge)
+		double distance;
+		//Ratio across the edge of the collision point.
+		double cEdgeRatio;
+		//Information about the collision point on the colliding edge
+		Double[] cEdgeVector = new Double[2];
+		double cEdgeVelocity;
+		double perpEdgeVelocity;
+		Double[] perpEdgeVector = new Double[2];
+		double finalEdgeVelocity;
+		Double[] finalEdgeVector = new Double[2];
+		
+		//The element of the vertex velocity which is perpendicular to the edge
+		double perpVertexVelocity;
+		Double[] perpVertexVector = new Double[2];
+		double finalVertexVelocity;
+		Double[] finalVertexVector = new Double[2];
+		
+		double centerRatio;
 		
 		if(intersected) {
 			System.out.println("bounce!");
@@ -177,32 +200,62 @@ public class SoftMesh {
 			}
 			
 			cEdge = findEdge(v1, v2);
-			cEdge.length = Math.sqrt(Math.pow(v2.x - v1.x, 2) + Math.pow(v2.y - v1.y, 2));
+			cEdgeMass = v1.mass + v2.mass;
+			//cEdge.length = Math.sqrt(Math.pow(v2.x - v1.x, 2) + Math.pow(v2.y - v1.y, 2));
 			
+			//X and Y components of edge rotates 90 degrees counterclockwise
+			perpRatio[0] = -(v2.y - v1.y) / cEdge.length;
+			perpRatio[1] = (v2.x - v1.x) / cEdge.length;
+			
+			distance = Math.pow(v1.x - intersection[0], 2);
+			distance += Math.pow(v1.y - intersection[1], 2);
+			distance = Math.sqrt(distance);
+			cEdgeRatio = distance / cEdge.length;
+			cEdgeVector[0] = v1.velX * (1 - cEdgeRatio) + v2.velX * cEdgeRatio;
+			cEdgeVector[1] = v1.velY * (1 - cEdgeRatio) + v2.velY * cEdgeRatio;
+			cEdgeVelocity = Math.pow(cEdgeVector[0], 2);
+			cEdgeVelocity += Math.pow(cEdgeVector[1], 2);
+			cEdgeVelocity = Math.sqrt(cEdgeVelocity);
+			angle = getAngle(cEdgeVector[0], cEdgeVector[1]) - getAngle(v2.x - v1.x, v2.y - v1.y);
+			perpEdgeVelocity = cEdgeVelocity * Math.sin(angle);	
+			perpEdgeVector[0] = perpEdgeVelocity * perpRatio[0];
+			perpEdgeVector[1] = perpEdgeVelocity * perpRatio[1];
+						
 			angle = getAngle(cVertex.velX, cVertex.velY) - getAngle(v2.x - v1.x, v2.y - v1.y);
+			perpVertexVelocity = cVertex.getVelocity() * Math.sin(angle);
+			perpVertexVector[0] = perpVertexVelocity * perpRatio[0];
+			perpVertexVector[1] = perpVertexVelocity * perpRatio[1];
+			
+			finalEdgeVelocity = collisionDampingFactor * ((cEdgeMass - cVertex.mass) * perpEdgeVelocity + 2 * cVertex.mass * perpVertexVelocity) / (cEdgeMass + cVertex.mass);
+			finalVertexVelocity = collisionDampingFactor * ((cVertex.mass - cEdgeMass) * perpVertexVelocity + 2 * cEdgeMass * perpEdgeVelocity) / (cVertex.mass + cEdgeMass);
+			
+			finalVertexVector[0] = finalVertexVelocity * perpRatio[0];
+			finalVertexVector[1] = finalVertexVelocity * perpRatio[1];
+			finalEdgeVector[0] = finalEdgeVelocity * perpRatio[0];
+			finalEdgeVector[1] = finalEdgeVelocity * perpRatio[1];
+			
+			centerRatio = (0.5 * cEdge.length - distance) / cEdge.length;
+			
+			cVertex.velX += finalVertexVector[0] - perpVertexVector[0];
+			cVertex.velY += finalVertexVector[1] - perpVertexVector[1];
+			v1.velX += finalEdgeVector[0] - perpEdgeVector[0];
+			v1.velY += finalEdgeVector[1] - perpEdgeVector[1];
+			v2.velX += finalEdgeVector[0] - perpEdgeVector[0];
+			v2.velY += finalEdgeVector[1] - perpEdgeVector[1];
+			
+//			try {
+//				Thread.sleep(1000000);
+//			} catch (InterruptedException e1) {}
+			
+			
+			/*
 			parallelVelocity = cVertex.getVelocity() * Math.cos(angle);
 			parallelVector[0] = parallelVelocity * (v2.x - v1.x) / cEdge.length;
 			parallelVector[1] = parallelVelocity * (v2.y - v1.y) / cEdge.length;
 			//Subtracting 2 times the perpendicular vector, to reverse the perpendicular vector.
 			cVertex.velX -= 2 * (cVertex.velX - parallelVector[0]);
 			cVertex.velY -= 2 * (cVertex.velY - parallelVector[1]);
-			
-			angle = getAngle(v1.velX, v1.velY) - getAngle(v2.x - v1.x, v2.y - v1.y);
-			parallelVelocity = v1.getVelocity() * Math.cos(angle);
-			parallelVector[0] = parallelVelocity * (v2.x - v1.x) / cEdge.length;
-			parallelVector[1] = parallelVelocity * (v2.y - v1.y) / cEdge.length;
-			//Subtracting 2 times the perpendicular vector, to reverse the perpendicular vector.
-			v1.velX -= 2 * (v1.velX - parallelVector[0]);
-			v1.velY -= 2 * (v1.velY - parallelVector[1]);
-			
-			angle = getAngle(v2.velX, v2.velY) - getAngle(v2.x - v1.x, v2.y - v1.y);
-			parallelVelocity = v2.getVelocity() * Math.cos(angle);
-			parallelVector[0] = parallelVelocity * (v2.x - v1.x) / cEdge.length;
-			parallelVector[1] = parallelVelocity * (v2.y - v1.y) / cEdge.length;
-			//Subtracting 2 times the perpendicular vector, to reverse the perpendicular vector.
-			v2.velX -= 2 * (v2.velX - parallelVector[0]);
-			v2.velY -= 2 * (v2.velY - parallelVector[1]);
-			
+			*/
 			
 		}
 		
@@ -264,6 +317,7 @@ public class SoftMesh {
 		}
 		
 		return intersecting;
+		
 	}
 	
 	public double distanceToLine(Vertex v, Vertex[] edge){

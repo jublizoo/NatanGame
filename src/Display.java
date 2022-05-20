@@ -1,3 +1,4 @@
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 
@@ -36,13 +37,6 @@ public class Display extends JPanel{
 			}			
 			g2d.drawLine((int) Math.round(v1.x), (int) Math.round(v1.y), (int) Math.round(v2.x), (int) Math.round(v2.y));
 		}
-		/*
-		for(Edge edge : mesh.edges) {
-			v1 = mesh.vertices.get(edge.v1);
-			v2 = mesh.vertices.get(edge.v2);
-			g2d.drawLine((int) Math.round(v1.x), (int) Math.round(v1.y), (int) Math.round(v2.x), (int) Math.round(v2.y));
-		}
-		*/
 		
 	}
 	

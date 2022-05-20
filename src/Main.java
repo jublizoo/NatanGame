@@ -17,7 +17,7 @@ public class Main {
 			try {
 				Thread.sleep(20);
 			} catch (InterruptedException e) {}
-			hair.onTick(20);
+			hair.onTick(5);
 			frame.repaint();
 		}
 		
