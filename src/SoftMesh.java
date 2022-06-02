@@ -14,10 +14,10 @@ public class SoftMesh {
 	public SoftMesh(int subTick) {
 		this.subTick = subTick;
 		
-		vertices.add(new Vertex(200, 200, false));
-		vertices.add(new Vertex(400, 0, false));
-		vertices.add(new Vertex(300, 300, false));
-		vertices.add(new Vertex(100, 300, false));
+		vertices.add(new Vertex(200, 200, 1.0));
+		vertices.add(new Vertex(400, 0, 1.0));
+		vertices.add(new Vertex(300, 300, 1.0));
+		vertices.add(new Vertex(100, 300, 1.0));
 		/*
 		vertices.add(new Vertex(300, 250, false));
 		vertices.add(new Vertex(300, 200, false));
@@ -185,6 +185,7 @@ public class SoftMesh {
 			System.out.println("bounce!");
 			minDistanceIndex = 0;
 			for(int i = 1; i < distances.length; i++) {
+				//Determines the "closest" vertex to the edge (first to reach the edge if you went back in time)
 				if(distances[i] / intersectingVertices[i].getVelocity() < distances[minDistanceIndex] / intersectingVertices[minDistanceIndex].getVelocity()) {
 					minDistanceIndex = i;
 				}
@@ -234,30 +235,25 @@ public class SoftMesh {
 			finalEdgeVector[0] = finalEdgeVelocity * perpRatio[0];
 			finalEdgeVector[1] = finalEdgeVelocity * perpRatio[1];
 			
-			centerRatio = (0.5 * cEdge.length - distance) / cEdge.length;
+			//1 is at v1, 0 is at the center, -1 is at v2
+			centerRatio = (0.5 * cEdge.length - distance) / (cEdge.length * 0.5);
 			
 			cVertex.velX += finalVertexVector[0] - perpVertexVector[0];
 			cVertex.velY += finalVertexVector[1] - perpVertexVector[1];
-			v1.velX += finalEdgeVector[0] - perpEdgeVector[0];
-			v1.velY += finalEdgeVector[1] - perpEdgeVector[1];
-			v2.velX += finalEdgeVector[0] - perpEdgeVector[0];
-			v2.velY += finalEdgeVector[1] - perpEdgeVector[1];
-			
-//			try {
-//				Thread.sleep(1000000);
-//			} catch (InterruptedException e1) {}
-			
-			
-			/*
-			parallelVelocity = cVertex.getVelocity() * Math.cos(angle);
-			parallelVector[0] = parallelVelocity * (v2.x - v1.x) / cEdge.length;
-			parallelVector[1] = parallelVelocity * (v2.y - v1.y) / cEdge.length;
-			//Subtracting 2 times the perpendicular vector, to reverse the perpendicular vector.
-			cVertex.velX -= 2 * (cVertex.velX - parallelVector[0]);
-			cVertex.velY -= 2 * (cVertex.velY - parallelVector[1]);
-			*/
+			//First terms are rotational movement, second are non rotational
+			v1.velX += weight(v1.mass, v2.mass) * (finalEdgeVector[0] * centerRatio + finalEdgeVector[0] * (1- centerRatio) - perpEdgeVector[0]);
+			v1.velY += weight(v1.mass, v2.mass) * (finalEdgeVector[1] * centerRatio + finalEdgeVector[1] * (1- centerRatio) - perpEdgeVector[1]);
+			v2.velX += weight(v2.mass, v1.mass) * (-finalEdgeVector[0] * centerRatio + finalEdgeVector[0] * (1- centerRatio) - perpEdgeVector[0]);
+			v2.velY += weight(v2.mass, v1.mass) * (-finalEdgeVector[1] * centerRatio + finalEdgeVector[1] * (1- centerRatio) - perpEdgeVector[1]);
 			
 		}
+		
+	}
+	
+	//returns the weight of each vertex based on the mass (does not take into account the centerRatio, those calculations are done seperately.
+	public Double weight(Double a, Double b) {
+
+		return a / b;
 		
 	}
 	

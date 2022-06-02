@@ -6,18 +6,16 @@ public class Vertex {
 	double forceY;
 	double velX;
 	double velY;
-	boolean fixed;
 	double mass;
 	
-	public Vertex(double x, double y, boolean fixed) {
+	public Vertex(double x, double y, double mass) {
 		this.x = x;
 		this.y = y;
-		this.fixed = fixed;
 		forceX = 0;
 		forceY = 0;
 		velX = 0;
 		velY = 0;
-		mass = 1;
+		this.mass = mass;
 		
 	}
 	
