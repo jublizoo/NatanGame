@@ -8,16 +8,16 @@ public class SoftMesh {
 	
 	//Number of (theoretical) milliseconds between each call of moveVertices
 	int subTick;
-	final static double dampingFactor = 0.9;
+	final static double dampingFactor = 0.2;
 	final static double collisionDampingFactor = 0.7;
 	
 	public SoftMesh(int subTick) {
 		this.subTick = subTick;
 		
-		vertices.add(new Vertex(200, 200, 1.0));
-		vertices.add(new Vertex(400, 0, 1.0));
-		vertices.add(new Vertex(300, 300, 1.0));
-		vertices.add(new Vertex(100, 300, 1.0));
+		vertices.add(new Vertex(200, 200));
+		vertices.add(new Vertex(400, 0));
+		vertices.add(new Vertex(300, 300));
+		vertices.add(new Vertex(100, 300));
 		/*
 		vertices.add(new Vertex(300, 250, false));
 		vertices.add(new Vertex(300, 200, false));
@@ -204,7 +204,7 @@ public class SoftMesh {
 			cEdgeMass = v1.mass + v2.mass;
 			//cEdge.length = Math.sqrt(Math.pow(v2.x - v1.x, 2) + Math.pow(v2.y - v1.y, 2));
 			
-			//X and Y components of edge rotates 90 degrees counterclockwise
+			//X and Y components of edge rotated 90 degrees counterclockwise
 			perpRatio[0] = -(v2.y - v1.y) / cEdge.length;
 			perpRatio[1] = (v2.x - v1.x) / cEdge.length;
 			
@@ -227,8 +227,10 @@ public class SoftMesh {
 			perpVertexVector[0] = perpVertexVelocity * perpRatio[0];
 			perpVertexVector[1] = perpVertexVelocity * perpRatio[1];
 			
+			System.out.println(cEdgeMass);
 			finalEdgeVelocity = collisionDampingFactor * ((cEdgeMass - cVertex.mass) * perpEdgeVelocity + 2 * cVertex.mass * perpVertexVelocity) / (cEdgeMass + cVertex.mass);
 			finalVertexVelocity = collisionDampingFactor * ((cVertex.mass - cEdgeMass) * perpVertexVelocity + 2 * cEdgeMass * perpEdgeVelocity) / (cVertex.mass + cEdgeMass);
+			System.out.println(finalEdgeVelocity + ", " + finalVertexVelocity);
 			
 			finalVertexVector[0] = finalVertexVelocity * perpRatio[0];
 			finalVertexVector[1] = finalVertexVelocity * perpRatio[1];
@@ -241,19 +243,12 @@ public class SoftMesh {
 			cVertex.velX += finalVertexVector[0] - perpVertexVector[0];
 			cVertex.velY += finalVertexVector[1] - perpVertexVector[1];
 			//First terms are rotational movement, second are non rotational
-			v1.velX += weight(v1.mass, v2.mass) * (finalEdgeVector[0] * centerRatio + finalEdgeVector[0] * (1- centerRatio) - perpEdgeVector[0]);
-			v1.velY += weight(v1.mass, v2.mass) * (finalEdgeVector[1] * centerRatio + finalEdgeVector[1] * (1- centerRatio) - perpEdgeVector[1]);
-			v2.velX += weight(v2.mass, v1.mass) * (-finalEdgeVector[0] * centerRatio + finalEdgeVector[0] * (1- centerRatio) - perpEdgeVector[0]);
-			v2.velY += weight(v2.mass, v1.mass) * (-finalEdgeVector[1] * centerRatio + finalEdgeVector[1] * (1- centerRatio) - perpEdgeVector[1]);
+			v1.velX += (finalEdgeVector[0] * centerRatio + finalEdgeVector[0] * (1- centerRatio) - perpEdgeVector[0]);
+			v1.velY += (finalEdgeVector[1] * centerRatio + finalEdgeVector[1] * (1- centerRatio) - perpEdgeVector[1]);
+			v2.velX += (-finalEdgeVector[0] * centerRatio + finalEdgeVector[0] * (1- centerRatio) - perpEdgeVector[0]);
+			v2.velY += (-finalEdgeVector[1] * centerRatio + finalEdgeVector[1] * (1- centerRatio) - perpEdgeVector[1]);
 			
 		}
-		
-	}
-	
-	//returns the weight of each vertex based on the mass (does not take into account the centerRatio, those calculations are done seperately.
-	public Double weight(Double a, Double b) {
-
-		return a / b;
 		
 	}
 	
@@ -406,5 +401,9 @@ public class SoftMesh {
 		return null;
 
 	}
+	
 
 }
+
+
+

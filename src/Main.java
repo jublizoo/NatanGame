@@ -15,7 +15,7 @@ public class Main {
 		initFrame();
 		while(true) {
 			try {
-				Thread.sleep(50);
+				Thread.sleep(20);
 			} catch (InterruptedException e) {}
 			hair.onTick(1);
 			frame.repaint();

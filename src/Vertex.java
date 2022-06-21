@@ -19,6 +19,10 @@ public class Vertex {
 		
 	}
 	
+	public Vertex(double x, double y) {
+		this(x, y, 1.0);
+	}
+	
 	public double getVelocity() {
 		double velocity = 0;
 		velocity += Math.pow(velX, 2);
